@@ -5,6 +5,7 @@ import { toNodeHandler } from 'better-auth/node';
 import { connectToMongoDB, getDb } from './lib/db.js';
 import { createAuth } from './lib/auth.js';
 import servicesRouter from './routes/services.js';
+import appointmentsRouter from './routes/appointments.js';
 
 const app = express();
 
@@ -38,6 +39,9 @@ async function startServer() {
 
     // Public REST routes
     app.use('/api/services', servicesRouter);
+
+    // Protected REST routes (JWT verified inside each router)
+    app.use('/api/appointments', appointmentsRouter);
 
     // Unknown /api route -> JSON 404 instead of an HTML page.
     app.use('/api', (req, res) => {
