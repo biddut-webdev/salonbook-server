@@ -2,16 +2,11 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../lib/db.js';
 
-// Better Auth publishes its public signing keys here. `jose` caches them,
-// so this is fetched only once (and refreshed automatically if keys rotate).
 const jwks = createRemoteJWKSet(
   new URL(`${process.env.BETTER_AUTH_URL}/api/auth/jwks`),
 );
 
-/**
- * Verifies the `Authorization: Bearer <token>` JWT and loads the user
- * from MongoDB. Everything after this middleware can trust `req.user`.
- */
+
 export async function verifyJWT(req, res, next) {
   try {
     const [scheme, token] = (req.headers.authorization || '').split(' ');
@@ -33,8 +28,6 @@ export async function verifyJWT(req, res, next) {
         .json({ success: false, message: 'Invalid session token.' });
     }
 
-    // Role and blocked status are read from the database on EVERY request,
-    // so an admin change takes effect immediately (never trust the token alone).
     const user = await getDb()
       .collection('user')
       .findOne({ _id: new ObjectId(payload.sub) });
@@ -66,7 +59,7 @@ export async function verifyJWT(req, res, next) {
   }
 }
 
-/** Allows the request only for the given roles (e.g. requireRole('admin')). */
+
 export function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) {
