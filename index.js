@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import { MongoClient } from 'mongodb';
 import { toNodeHandler } from 'better-auth/node';
+import { connectToMongoDB, getDb } from './lib/db.js';
 import { createAuth } from './lib/auth.js';
+import servicesRouter from './routes/services.js';
 
 const app = express();
 
@@ -18,19 +19,6 @@ app.use(
 
 const port = process.env.PORT || 5000;
 
-const client = new MongoClient(process.env.MONGODB_URI);
-
-export async function connectToMongoDB() {
-  try {
-    await client.connect();
-    console.log('You successfully connected to MongoDB!');
-    return client;
-  } catch (err) {
-    console.error('MongoDB connection failed:', err);
-    throw err;
-  }
-}
-
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
@@ -39,8 +27,7 @@ async function startServer() {
   try {
     await connectToMongoDB();
 
-    const db = client.db(process.env.MONGODB_DB || 'salonbook');
-    const auth = createAuth(db);
+    const auth = createAuth(getDb());
 
     // Better Auth must be mounted BEFORE express.json():
     // the body parser would otherwise consume the request body first.
@@ -48,6 +35,23 @@ async function startServer() {
 
     // JSON parsing for all of our own REST routes.
     app.use(express.json());
+
+    // Public REST routes
+    app.use('/api/services', servicesRouter);
+
+    // Unknown /api route -> JSON 404 instead of an HTML page.
+    app.use('/api', (req, res) => {
+      res.status(404).json({ success: false, message: 'API route not found.' });
+    });
+
+    // Central error handler: every route can just call next(error).
+    app.use((error, req, res, next) => {
+      console.error(error);
+      res.status(500).json({
+        success: false,
+        message: 'Something went wrong on the server.',
+      });
+    });
 
     app.listen(port, () => {
       console.log(`Example app listening on port ${port}`);
