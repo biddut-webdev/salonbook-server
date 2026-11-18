@@ -3,7 +3,7 @@ import { Router } from "express";
 import multer from "multer";
 import { ObjectId } from "mongodb";
 import { getDb } from "../lib/db.js";
-import { verifyJWT } from "../middleware/auth.js";
+import { verifyJWT } from '../middleware/auth.js';
 
 const router = Router();
 
