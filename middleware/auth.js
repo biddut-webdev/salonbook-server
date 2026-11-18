@@ -1,11 +1,10 @@
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify, errors as joseErrors } from 'jose';
 import { ObjectId } from 'mongodb';
 import { getDb } from '../lib/db.js';
 
 const jwks = createRemoteJWKSet(
   new URL(`${process.env.BETTER_AUTH_URL}/api/auth/jwks`),
 );
-
 
 export async function verifyJWT(req, res, next) {
   try {
@@ -48,17 +47,24 @@ export async function verifyJWT(req, res, next) {
       id: user._id.toString(),
       name: user.name,
       email: user.email,
-      role: user.role,
+      role: user.role || 'customer',
     };
 
     next();
-  } catch {
+  } catch (error) {
+    // Token problems -> 401. Anything else (e.g. database down) -> 500.
+    if (error instanceof joseErrors.JOSEError) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Invalid or expired token.' });
+    }
+
+    console.error('verifyJWT failed:', error);
     return res
-      .status(401)
-      .json({ success: false, message: 'Invalid or expired token.' });
+      .status(500)
+      .json({ success: false, message: 'Authentication check failed.' });
   }
 }
-
 
 export function requireRole(...roles) {
   return (req, res, next) => {
