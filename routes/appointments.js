@@ -268,36 +268,58 @@ router.get('/', verifyJWT, requireRole('admin'), async (req, res, next) => {
   }
 });
 
+
 router.get('/stats', verifyJWT, requireRole('admin'), async (req, res, next) => {
   try {
     const db = getDb();
 
-    const grouped = await db
-      .collection('appointments')
-      .aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }])
-      .toArray();
+    const [
+      grouped,
+      revenueRows,
+      totalCustomers,
+      totalServices,
+      totalSuccessfulPayments,
+      recentAppointments,
+    ] = await Promise.all([
+      db
+        .collection('appointments')
+        .aggregate([
+          { $group: { _id: '$status', count: { $sum: 1 } } },
+        ])
+        .toArray(),
 
-    const statusCounts = { pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
-    for (const row of grouped) {
-      if (row._id in statusCounts) statusCounts[row._id] = row.count;
-    }
+      db
+        .collection('transactions')
+        .aggregate([
+          { $match: { status: 'paid' } },
+          { $group: { _id: null, total: { $sum: '$amount' } } },
+        ])
+        .toArray(),
 
-    const revenueRows = await db
-      .collection('transactions')
-      .aggregate([
-        { $match: { status: 'paid' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } },
-      ])
-      .toArray();
-
-    const [totalCustomers, totalServices, recentAppointments] = await Promise.all([
       db.collection('user').countDocuments({ role: 'customer' }),
+
       db.collection('services').countDocuments({ status: 'active' }),
+
+      db.collection('transactions').countDocuments({ status: 'paid' }),
+
       db
         .collection('appointments')
         .aggregate([...appointmentPipeline(), { $limit: 5 }])
         .toArray(),
     ]);
+
+    const statusCounts = {
+      pending: 0,
+      confirmed: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+
+    for (const row of grouped) {
+      if (row._id in statusCounts) {
+        statusCounts[row._id] = row.count;
+      }
+    }
 
     const totalAppointments = Object.values(statusCounts).reduce(
       (sum, count) => sum + count,
@@ -307,11 +329,12 @@ router.get('/stats', verifyJWT, requireRole('admin'), async (req, res, next) => 
     res.json({
       success: true,
       data: {
-        totalAppointments,
-        statusCounts,
-        revenue: revenueRows[0]?.total || 0,
         totalCustomers,
         totalServices,
+        totalAppointments,
+        statusCounts,
+        totalSuccessfulPayments,
+        revenue: revenueRows[0]?.total || 0,
         recentAppointments,
       },
     });
