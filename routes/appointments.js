@@ -6,12 +6,13 @@ import { verifyJWT, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
-const STATUSES = ['pending', 'confirmed', 'cancelled'];
-const CLOSED_STATUSES = ['cancelled'];
+const STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'];
+const CLOSED_STATUSES = ['completed', 'cancelled'];
 
 const ALLOWED_TRANSITIONS = {
   pending: ['confirmed', 'cancelled'],
-  confirmed: ['cancelled'],
+  confirmed: ['completed', 'cancelled'],
+  completed: [],
   cancelled: [],
 };
 
