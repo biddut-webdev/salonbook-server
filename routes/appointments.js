@@ -377,6 +377,13 @@ router.patch('/:id/status', verifyJWT, requireRole('admin'), async (req, res, ne
       });
     }
 
+    if (status === 'completed' && appointment.paymentStatus !== 'paid') {
+      return res.status(409).json({
+        success: false,
+        message: 'Appointment cannot be completed until payment is successful.',
+      });
+    }
+
     const allowedStatuses = ALLOWED_TRANSITIONS[appointment.status] || [];
 
     if (!allowedStatuses.includes(status)) {
@@ -386,10 +393,11 @@ router.patch('/:id/status', verifyJWT, requireRole('admin'), async (req, res, ne
       });
     }
 
-    await appointments.updateOne(
+    const result = await appointments.updateOne(
       {
         _id: appointment._id,
         status: appointment.status,
+        ...(status === 'completed' ? { paymentStatus: 'paid' } : {}),
       },
       {
         $set: {
@@ -398,6 +406,13 @@ router.patch('/:id/status', verifyJWT, requireRole('admin'), async (req, res, ne
         },
       }
     );
+
+    if (result.modifiedCount === 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Appointment status could not be updated. Please refresh and try again.',
+      });
+    }
 
     res.json({
       success: true,
