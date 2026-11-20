@@ -2,6 +2,11 @@
 
 SalonBook is a salon appointment booking platform. This repository contains the Express.js REST API, MongoDB integration, authentication and authorization, image-upload endpoint, and Stripe payment/webhook handling.
 
+- **Live API:** https://salonbook-server-blue.vercel.app
+- **Live client:** https://salonbook-client-seven.vercel.app
+- **Client repository:** https://github.com/biddut-webdev/salonbook-client
+- **Server repository:** https://github.com/biddut-webdev/salonbook-server
+
 ## Important Features
 
 - REST API for salon services, appointments, profiles, users, and transactions
@@ -111,12 +116,13 @@ Copy the webhook signing secret printed by Stripe CLI into `STRIPE_WEBHOOK_SECRE
 
 ## Live Website
 
-- Live Website: **Add the deployed Vercel URL here after deployment.**
+- **Live client:** https://salonbook-client-seven.vercel.app
+- **Live API:** https://salonbook-server-blue.vercel.app
 
 ## GitHub Repositories
 
-- Client Repository: [salonbook-client](https://github.com/biddut-webdev/salonbook-client)
-- Server Repository: [salonbook-server](https://github.com/biddut-webdev/salonbook-server)
+- **Client:** https://github.com/biddut-webdev/salonbook-client
+- **Server:** https://github.com/biddut-webdev/salonbook-server
 
 ## Security
 
